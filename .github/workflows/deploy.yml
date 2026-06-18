@@ -65,14 +65,15 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Update Container App image
-        uses: azure/CLI@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az containerapp update \
-              --name "${{ secrets.AZURE_CONTAINERAPP_NAME }}" \
-              --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
-              --image "${{ steps.img.outputs.name }}:${{ github.sha }}"
+        env:
+          APP_NAME: ${{ secrets.AZURE_CONTAINERAPP_NAME }}
+          RG: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          IMAGE_REF: ${{ steps.img.outputs.name }}:${{ github.sha }}
+        run: |
+          az extension add --name containerapp --upgrade --only-show-errors
+          az account show --query "{sub:name, user:user.name}" -o tsv
+          az containerapp list -g "$RG" --query "[].name" -o tsv
+          az containerapp update --name "$APP_NAME" --resource-group "$RG" --image "$IMAGE_REF"
 
       - name: Smoke-test deployment
         run: |
