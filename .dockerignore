@@ -5,7 +5,6 @@
 __pycache__
 *.pyc
 tests
-train
 infra
 README.md
 .gitignore
