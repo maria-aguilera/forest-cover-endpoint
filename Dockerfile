@@ -9,6 +9,7 @@ WORKDIR /app
 
 COPY pyproject.toml ./
 COPY app ./app
+COPY train ./train
 COPY models ./models
 RUN pip install --upgrade pip && pip install .
 
