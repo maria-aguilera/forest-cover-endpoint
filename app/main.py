@@ -12,7 +12,9 @@ from app.model import load_model, predict
 from app.schemas import PredictRequest, PredictResponse
 
 # Structured JSON logging — every line is a single JSON object queryable in
-# Log Analytics by field instead of by regex.
+# Log Analytics by field instead of by regex. Includes uvicorn's access logger
+# (which has its own handlers and would otherwise stay in the default text
+# format).
 _handler = logging.StreamHandler(sys.stdout)
 _handler.setFormatter(
     jsonlogger.JsonFormatter(
@@ -20,9 +22,11 @@ _handler.setFormatter(
         rename_fields={"asctime": "timestamp", "levelname": "level"},
     )
 )
-_root = logging.getLogger()
-_root.handlers = [_handler]
-_root.setLevel(logging.INFO)
+for _name in ("", "uvicorn", "uvicorn.access", "uvicorn.error", "fastapi"):
+    _lg = logging.getLogger(_name)
+    _lg.handlers = [_handler]
+    _lg.setLevel(logging.INFO)
+    _lg.propagate = False
 logger = logging.getLogger("forest_cover_endpoint")
 
 
