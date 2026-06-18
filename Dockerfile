@@ -8,10 +8,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY pyproject.toml ./
-RUN pip install --upgrade pip && pip install .
-
 COPY app ./app
 COPY models ./models
+RUN pip install --upgrade pip && pip install .
 
 EXPOSE 8000
 
