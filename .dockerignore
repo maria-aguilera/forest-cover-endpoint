@@ -1,0 +1,14 @@
+.git
+.github
+.venv
+.pytest_cache
+__pycache__
+*.pyc
+tests
+train
+infra
+README.md
+.gitignore
+.ruff_cache
+.mypy_cache
+.DS_Store

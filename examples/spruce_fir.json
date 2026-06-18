@@ -1,0 +1,14 @@
+{
+  "elevation": 2596,
+  "aspect": 51,
+  "slope": 3,
+  "horizontal_distance_to_hydrology": 258,
+  "vertical_distance_to_hydrology": 0,
+  "horizontal_distance_to_roadways": 510,
+  "hillshade_9am": 221,
+  "hillshade_noon": 232,
+  "hillshade_3pm": 148,
+  "horizontal_distance_to_fire_points": 6279,
+  "wilderness_area": 1,
+  "soil_type": 29
+}

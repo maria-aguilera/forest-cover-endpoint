@@ -1,0 +1,88 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/forest-cover-endpoint
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        id: img
+        run: echo "name=${IMAGE_NAME,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install training deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[train]'
+
+      - name: Train model
+        run: python -m train.train --sample-size 50000 --n-estimators 200
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.img.outputs.name }}:${{ github.sha }}
+            ${{ steps.img.outputs.name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Update Container App image
+        uses: azure/CLI@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az containerapp update \
+              --name "${{ secrets.AZURE_CONTAINERAPP_NAME }}" \
+              --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+              --image "${{ steps.img.outputs.name }}:${{ github.sha }}"
+
+      - name: Smoke-test deployment
+        run: |
+          URL=$(az containerapp show \
+            --name "${{ secrets.AZURE_CONTAINERAPP_NAME }}" \
+            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          for i in 1 2 3 4 5; do
+            if curl -fsS "https://${URL}/health"; then echo OK && exit 0; fi
+            sleep 10
+          done
+          echo "Smoke test failed" && exit 1
+        shell: bash
