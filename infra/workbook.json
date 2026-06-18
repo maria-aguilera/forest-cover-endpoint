@@ -1,0 +1,111 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Forest Cover Endpoint — Operational Dashboard\n\nLive view of the `forest-cover-endpoint` Container App: request rate, status-code mix, replica history, and recent logs from Log Analytics.\n\n- **Service:** [forest-cover-endpoint.whiteflower-743727a8.northeurope.azurecontainerapps.io](https://forest-cover-endpoint.whiteflower-743727a8.northeurope.azurecontainerapps.io)\n- **Region:** North Europe\n- **Min replicas:** 0 (scale-to-zero)\n- **Metrics endpoint:** `/metrics` (Prometheus)"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Request rate (last hour, 5-min buckets)"
+      }
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == 'forest-cover-endpoint'\n| where TimeGenerated > ago(1h)\n| extend log = parse_json(Log_s)\n| extend msg = tostring(coalesce(log.message, Log_s))\n| where msg has 'HTTP/1.1'\n| summarize requests = count() by bin(TimeGenerated, 5m)\n| order by TimeGenerated asc",
+        "size": 0,
+        "timeContext": { "durationMs": 3600000 },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "timechart"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Status code distribution (last hour)"
+      }
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == 'forest-cover-endpoint'\n| where TimeGenerated > ago(1h)\n| extend log = parse_json(Log_s)\n| extend msg = tostring(coalesce(log.message, Log_s))\n| extend status = extract(@'HTTP/1\\.1\\x22 (\\d+)', 1, msg)\n| where isnotempty(status)\n| extend category = strcat(substring(status, 0, 1), 'xx')\n| summarize requests = count() by category\n| order by category asc",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "piechart"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Requests by endpoint (last hour)"
+      }
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == 'forest-cover-endpoint'\n| where TimeGenerated > ago(1h)\n| extend log = parse_json(Log_s)\n| extend msg = tostring(coalesce(log.message, Log_s))\n| extend path = extract(@'\"(GET|POST) ([^ ]+) HTTP', 2, msg)\n| where isnotempty(path)\n| summarize requests = count() by path\n| order by requests desc",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "barchart"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Replica count over time (last hour)\n\nScale-to-zero in action: replicas should sit at 0 unless traffic is being served."
+      }
+    },
+    {
+      "type": 10,
+      "content": {
+        "chartId": "replicas",
+        "version": "MetricsItem/2.0",
+        "size": 0,
+        "chartType": 2,
+        "resourceType": "microsoft.app/containerapps",
+        "metricScope": 0,
+        "resourceIds": [
+          "/subscriptions/9117d61a-093b-4ee4-9a4e-0b4ff4538ef4/resourceGroups/forest-cover-rg/providers/Microsoft.App/containerApps/forest-cover-endpoint"
+        ],
+        "timeContext": { "durationMs": 3600000 },
+        "metrics": [
+          {
+            "namespace": "microsoft.app/containerapps",
+            "metric": "microsoft.app/containerapps--Replicas",
+            "aggregation": 4
+          }
+        ]
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Recent log lines (most recent 50)"
+      }
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "ContainerAppConsoleLogs_CL\n| where ContainerAppName_s == 'forest-cover-endpoint'\n| order by TimeGenerated desc\n| take 50\n| extend log = parse_json(Log_s)\n| project\n    Time = TimeGenerated,\n    Level = tostring(log.level),\n    Logger = tostring(log.name),\n    Message = tostring(coalesce(log.message, Log_s))",
+        "size": 0,
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table"
+      }
+    }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/9117d61a-093b-4ee4-9a4e-0b4ff4538ef4/resourceGroups/forest-cover-rg/providers/Microsoft.OperationalInsights/workspaces/workspace-forestcoverrgtf4m"
+  ]
+}
